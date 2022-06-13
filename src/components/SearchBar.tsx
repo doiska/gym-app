@@ -1,12 +1,46 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { fetchExercises, TExercise, RapidUrls } from '../utils/fetchExercises';
+import HorizontalScrollbar from './HorizontalScrollbar';
 
 type Props = {
-    search: string;
-    onSearch: (search: string) => void;
+    bodyPart: string;
+    setBodyPart: (bodyPart: string) => void;
 };
 
-const SearchBar = ({ search, onSearch }: Props) => {
+const SearchBar = ({ bodyPart, setBodyPart }: Props) => {
+    const [search, setSearch] = useState('');
+    const [exercises, setExercises] = useState<TExercise[]>([]);
+    const [bodyParts, setBodyParts] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchExercisesData = async () => {
+            const bodyPartsData = await fetchExercises<string[]>(
+                RapidUrls.BODY_PARTS
+            );
+
+            setBodyParts(['all', ...bodyPartsData]);
+        };
+
+        fetchExercisesData();
+    }, []);
+
+    const handleSearch = async () => {
+        if (search) {
+            const res = await fetchExercises<TExercise[]>(RapidUrls.EXERCISES);
+
+            const searched = res.filter(
+                (exercise) =>
+                    exercise.name.toLowerCase().includes(search) ||
+                    exercise.target.toLowerCase().includes(search) ||
+                    exercise.bodyPart.toLowerCase().includes(search)
+            );
+
+            setSearch('');
+            setExercises(searched);
+        }
+    };
+
     return (
         <Stack
             alignItems={'center'}
@@ -27,7 +61,7 @@ const SearchBar = ({ search, onSearch }: Props) => {
                     type={'text'}
                     value={search}
                     placeholder={'Search exercises'}
-                    onChange={(e) => onSearch(e.target.value)}
+                    onChange={(e) => setSearch(e.target.value)}
                     sx={{
                         input: {
                             fontWeight: '700',
@@ -59,9 +93,18 @@ const SearchBar = ({ search, onSearch }: Props) => {
                         height: '56px',
                         position: 'absolute',
                     }}
+                    onClick={handleSearch}
                 >
                     Search
                 </Button>
+            </Box>
+            <Box sx={{ position: 'relative', width: '100%', p: '20px' }}>
+                <HorizontalScrollbar
+                    bodyPart={bodyPart}
+                    setBodyPart={setBodyPart}
+                    setBodyParts={setBodyParts}
+                    bodyParts={bodyParts}
+                />
             </Box>
         </Stack>
     );
